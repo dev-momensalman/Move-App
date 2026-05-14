@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CineVault — TV Show Explorer</title>
+  <meta name="description" content="Discover and explore top TV shows with ratings, genres, and full details. Powered by TVMaze data." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-deep:       #080b14;
+      --bg-panel:      #0e1220;
+      --bg-card:       #111827;
+      --bg-card-hover: #161e30;
+      --border:        rgba(255,255,255,0.07);
+      --border-bright: rgba(255,255,255,0.15);
+      --text-primary:  #f0f4ff;
+      --text-secondary:#94a3b8;
+      --text-muted:    #64748b;
+      --accent:        #6366f1;
+      --accent-glow:   rgba(99,102,241,0.35);
+      --accent2:       #ec4899;
+      --gold:          #f59e0b;
+      --green:         #22c55e;
+      --red:           #ef4444;
+      --blue:          #3b82f6;
+      --radius:        14px;
+      --shadow-card:   0 4px 24px rgba(0,0,0,0.5);
+      --transition:    all 0.22s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-deep);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ─── SCROLLBAR ─── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg-deep); }
+    ::-webkit-scrollbar-thumb { background: #2d3748; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+    /* ─── HERO HEADER ─── */
+    .hero {
+      position: relative;
+      padding: 80px 24px 60px;
+      text-align: center;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% -10%, rgba(99,102,241,0.22) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 40% at 80% 80%, rgba(236,72,153,0.12) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(99,102,241,0.15);
+      border: 1px solid rgba(99,102,241,0.35);
+      border-radius: 100px;
+      padding: 6px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #a5b4fc;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 24px;
+    }
+    .hero-badge::before { content: '◈'; font-size: 10px; }
+    .hero h1 {
+      font-family: 'Outfit', sans-serif;
+      font-size: clamp(2.4rem, 7vw, 5rem);
+      font-weight: 800;
+      line-height: 1.1;
+      background: linear-gradient(135deg, #e0e7ff 0%, #a5b4fc 40%, #ec4899 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 16px;
+    }
+    .hero p {
+      font-size: 1.1rem;
+      color: var(--text-secondary);
+      max-width: 540px;
+      margin: 0 auto 40px;
+      line-height: 1.7;
+    }
+    .hero-stats {
+      display: flex;
+      justify-content: center;
+      gap: 36px;
+      flex-wrap: wrap;
+    }
+    .stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .stat-num {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.8rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #a5b4fc, #ec4899);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .stat-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; }
+
+    /* ─── CONTROLS ─── */
+    .controls {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(8,11,20,0.85);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+    }
+    .controls-inner {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+    .search-wrap {
+      position: relative;
+      flex: 1;
+      min-width: 220px;
+    }
+    .search-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 15px;
+      pointer-events: none;
+    }
+    #search {
+      width: 100%;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 14px 10px 40px;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 14px;
+      outline: none;
+      transition: var(--transition);
+    }
+    #search::placeholder { color: var(--text-muted); }
+    #search:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+
+    .filter-group { display: flex; gap: 8px; flex-wrap: wrap; }
+    select, .sort-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 14px;
+      color: var(--text-secondary);
+      font-family: inherit;
+      font-size: 13px;
+      cursor: pointer;
+      outline: none;
+      transition: var(--transition);
+    }
+    select:focus, select:hover { border-color: var(--accent); color: var(--text-primary); }
+    select option { background: var(--bg-card); }
+
+    .filter-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 100px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: var(--text-secondary);
+      transition: var(--transition);
+      user-select: none;
+      white-space: nowrap;
+    }
+    .filter-pill:hover { border-color: var(--accent); color: var(--text-primary); }
+    .filter-pill.active { background: var(--accent); border-color: var(--accent); color: #fff; box-shadow: 0 0 16px var(--accent-glow); }
+
+    .results-info {
+      max-width: 1400px;
+      margin: 20px auto 0;
+      padding: 0 24px;
+      font-size: 13px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .results-info span { color: var(--accent); font-weight: 600; }
+
+    /* ─── GRID ─── */
+    .grid-container {
+      max-width: 1400px;
+      margin: 24px auto 60px;
+      padding: 0 24px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+    }
+
+    /* ─── SHOW CARD ─── */
+    .show-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      cursor: pointer;
+      transition: var(--transition);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      animation: fadeUp 0.35s ease both;
+    }
+    .show-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--border-bright);
+      box-shadow: var(--shadow-card), 0 0 30px rgba(99,102,241,0.12);
+      background: var(--bg-card-hover);
+    }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+
+    .card-poster {
+      position: relative;
+      width: 100%;
+      padding-top: 140%;
+      overflow: hidden;
+      background: #0a0e1a;
+    }
+    .card-poster img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.4s ease;
+    }
+    .show-card:hover .card-poster img { transform: scale(1.04); }
+    .poster-placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: linear-gradient(135deg, #0e1220, #111827);
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+    .poster-placeholder .icon { font-size: 36px; opacity: 0.4; }
+
+    .card-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(8,11,20,0.95) 0%, rgba(8,11,20,0.4) 40%, transparent 70%);
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 16px;
+    }
+    .card-genres {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-bottom: 8px;
+    }
+    .genre-tag {
+      background: rgba(99,102,241,0.2);
+      border: 1px solid rgba(99,102,241,0.3);
+      border-radius: 100px;
+      padding: 2px 10px;
+      font-size: 10px;
+      font-weight: 600;
+      color: #a5b4fc;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .card-title-overlay {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #fff;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.6);
+      line-height: 1.3;
+    }
+
+    .status-badge {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      padding: 4px 10px;
+      border-radius: 100px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .status-Running  { background: rgba(34,197,94,0.2); border: 1px solid rgba(34,197,94,0.45); color: #4ade80; }
+    .status-Ended    { background: rgba(100,116,139,0.2); border: 1px solid rgba(100,116,139,0.35); color: #94a3b8; }
+    .status-TBD      { background: rgba(245,158,11,0.2); border: 1px solid rgba(245,158,11,0.4); color: #fbbf24; }
+
+    .card-body {
+      padding: 16px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .card-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .rating {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--gold);
+    }
+    .rating .star { font-size: 12px; }
+    .rating.none { color: var(--text-muted); font-weight: 400; opacity: 0.7; }
+
+    .network-pill {
+      font-size: 11px;
+      color: var(--text-muted);
+      background: rgba(255,255,255,0.05);
+      border-radius: 6px;
+      padding: 3px 8px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 120px;
+    }
+
+    .card-info-row {
+      display: flex;
+      gap: 14px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .info-item { display: flex; align-items: center; gap: 4px; }
+    .info-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--text-muted); flex-shrink: 0; }
+
+    .card-summary {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .card-footer {
+      margin-top: auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .view-btn {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--accent);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      opacity: 0.8;
+      transition: var(--transition);
+    }
+    .show-card:hover .view-btn { opacity: 1; }
+    .type-label {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    /* ─── MODAL ─── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-bright);
+      border-radius: 20px;
+      max-width: 860px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      transform: scale(0.94) translateY(20px);
+      transition: transform 0.28s cubic-bezier(0.34,1.56,0.64,1);
+      position: relative;
+    }
+    .modal-overlay.open .modal { transform: scale(1) translateY(0); }
+    .modal-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.08);
+      border: none;
+      cursor: pointer;
+      color: var(--text-secondary);
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      transition: var(--transition);
+    }
+    .modal-close:hover { background: rgba(255,255,255,0.15); color: #fff; }
+
+    .modal-hero {
+      display: flex;
+      gap: 0;
+      min-height: 300px;
+    }
+    .modal-poster {
+      width: 220px;
+      flex-shrink: 0;
+      position: relative;
+      overflow: hidden;
+      border-radius: 20px 0 0 0;
+    }
+    .modal-poster img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .modal-poster-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #0e1220, #111827);
+      font-size: 48px;
+      opacity: 0.4;
+    }
+    .modal-header {
+      flex: 1;
+      padding: 32px 32px 28px;
+      background: linear-gradient(135deg, rgba(99,102,241,0.08), transparent);
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      border-radius: 0 20px 0 0;
+    }
+    .modal-status-row { display: flex; gap: 10px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+    .modal-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: clamp(1.4rem, 4vw, 2.2rem);
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+    .modal-genres { display: flex; flex-wrap: wrap; gap: 6px; }
+    .modal-genre {
+      background: rgba(99,102,241,0.15);
+      border: 1px solid rgba(99,102,241,0.3);
+      border-radius: 100px;
+      padding: 4px 12px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #a5b4fc;
+    }
+
+    .modal-body { padding: 28px 32px 32px; display: flex; flex-direction: column; gap: 24px; }
+    .modal-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+    }
+    .modal-stat {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+    }
+    .modal-stat-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+    .modal-stat-value { font-size: 15px; font-weight: 600; color: var(--text-primary); }
+    .modal-stat-value.gold { color: var(--gold); }
+    .modal-stat-value.green { color: var(--green); }
+
+    .modal-summary h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 10px; }
+    .modal-summary p { font-size: 14px; color: var(--text-secondary); line-height: 1.8; }
+
+    .modal-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 11px 20px;
+      border-radius: 10px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+      transition: var(--transition);
+      align-self: flex-start;
+    }
+    .modal-link:hover { background: #4f46e5; transform: translateY(-1px); box-shadow: 0 6px 20px var(--accent-glow); }
+
+    /* ─── EMPTY STATE ─── */
+    .empty-state {
+      grid-column: 1/-1;
+      text-align: center;
+      padding: 80px 24px;
+    }
+    .empty-state .icon { font-size: 56px; margin-bottom: 20px; opacity: 0.4; }
+    .empty-state h3 { font-size: 1.3rem; font-weight: 600; margin-bottom: 8px; }
+    .empty-state p { color: var(--text-muted); font-size: 14px; }
+
+    /* ─── FOOTER ─── */
+    footer {
+      border-top: 1px solid var(--border);
+      text-align: center;
+      padding: 24px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    footer span { color: var(--accent); }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 640px) {
+      .hero { padding: 48px 16px 40px; }
+      .controls-inner { gap: 8px; }
+      .grid-container { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; padding: 0 12px; }
+      .modal-hero { flex-direction: column; }
+      .modal-poster { width: 100%; height: 220px; border-radius: 20px 20px 0 0; }
+      .modal-header { border-radius: 0; padding: 20px; }
+      .modal-body { padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ─── HERO ─── -->
+<header class="hero">
+  <div class="hero-badge">TVMaze Powered</div>
+  <h1>CineVault</h1>
+  <p>Browse, search, and discover your next obsession from a curated collection of top TV shows across every genre.</p>
+  <div class="hero-stats">
+    <div class="stat"><div class="stat-num" id="total-count">—</div><div class="stat-label">Shows</div></div>
+    <div class="stat"><div class="stat-num" id="running-count">—</div><div class="stat-label">Running</div></div>
+    <div class="stat"><div class="stat-num" id="genre-count">—</div><div class="stat-label">Genres</div></div>
+    <div class="stat"><div class="stat-num" id="top-rating">—</div><div class="stat-label">Top Rating</div></div>
+  </div>
+</header>
+
+<!-- ─── CONTROLS ─── -->
+<div class="controls">
+  <div class="controls-inner">
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="search" placeholder="Search shows, genres, networks…" autocomplete="off" />
+    </div>
+    <div class="filter-group">
+      <select id="genre-filter">
+        <option value="">All Genres</option>
+      </select>
+      <select id="status-filter">
+        <option value="">All Status</option>
+        <option value="Running">🟢 Running</option>
+        <option value="Ended">⚫ Ended</option>
+        <option value="To Be Determined">🟡 TBD</option>
+      </select>
+      <select id="sort-select">
+        <option value="rating">⭐ Top Rated</option>
+        <option value="name">🔤 A–Z</option>
+        <option value="premiered">📅 Newest</option>
+        <option value="weight">🔥 Popularity</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<!-- ─── RESULTS INFO ─── -->
+<div class="results-info">
+  <div id="results-text">Loading…</div>
+  <div class="filter-group" style="gap:6px">
+    <button class="filter-pill active" data-type="">All Types</button>
+    <button class="filter-pill" data-type="Scripted">Scripted</button>
+    <button class="filter-pill" data-type="Animation">Animation</button>
+    <button class="filter-pill" data-type="Reality">Reality</button>
+  </div>
+</div>
+
+<!-- ─── GRID ─── -->
+<main class="grid-container" id="grid"></main>
+
+<!-- ─── MODAL ─── -->
+<div class="modal-overlay" id="modal-overlay" role="dialog" aria-modal="true">
+  <div class="modal" id="modal">
+    <button class="modal-close" id="modal-close" aria-label="Close">✕</button>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<!-- ─── FOOTER ─── -->
+<footer>
+  Powered by <span>TVMaze API</span> · Built with ♥ · CineVault 2025
+</footer>
+
+<script>
+// ───────────────────── DATA ─────────────────────
+const RAW = [{"id":1,"url":"https://www.tvmaze.com/shows/1/under-the-dome","name":"Under the Dome","type":"Scripted","language":"English","genres":["Drama","Science-Fiction","Thriller"],"status":"Ended","runtime":60,"averageRuntime":60,"premiered":"2013-06-24","ended":"2015-09-10","rating":{"average":6.6},"weight":99,"network":{"id":2,"name":"CBS"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/610/1525272.jpg"},"summary":"<p><b>Under the Dome</b> is the story of a small town that is suddenly and inexplicably sealed off from the rest of the world by an enormous transparent dome.</p>"},{"id":2,"url":"https://www.tvmaze.com/shows/2/person-of-interest","name":"Person of Interest","type":"Scripted","language":"English","genres":["Action","Crime","Science-Fiction"],"status":"Ended","runtime":60,"averageRuntime":60,"premiered":"2011-09-22","ended":"2016-06-21","rating":{"average":8.8},"weight":99,"network":{"id":2,"name":"CBS"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/163/407679.jpg"},"summary":"<p>You are being watched. The government has a secret system, a machine that spies on you every hour of every day.</p>"},{"id":3,"url":"https://www.tvmaze.com/shows/3/bitten","name":"Bitten","type":"Scripted","language":"English","genres":["Drama","Horror","Romance"],"status":"Ended","runtime":60,"averageRuntime":60,"premiered":"2014-01-11","ended":"2016-04-15","rating":{"average":7.4},"weight":97,"network":{"id":7,"name":"CTV Sci-Fi Channel"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/0/15.jpg"},"summary":"<p>Based on the critically acclaimed series of novels from Kelley Armstrong. <b>Bitten</b> follows the world's only female werewolf.</p>"},{"id":4,"url":"https://www.tvmaze.com/shows/4/arrow","name":"Arrow","type":"Scripted","language":"English","genres":["Drama","Action","Science-Fiction"],"status":"Ended","runtime":60,"averageRuntime":60,"premiered":"2012-10-10","ended":"2020-01-28","rating":{"average":7.4},"weight":99,"network":{"id":5,"name":"The CW"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/143/358967.jpg"},"summary":"<p>After a violent shipwreck, billionaire playboy Oliver Queen returned home to Starling City and wages a one-man war on crime.</p>"},{"id":5,"url":"https://www.tvmaze.com/shows/5/true-detective","name":"True Detective","type":"Scripted","language":"English","genres":["Drama","Crime","Thriller"],"status":"Running","runtime":60,"averageRuntime":63,"premiered":"2014-01-12","ended":null,"rating":{"average":8.1},"weight":100,"network":{"id":8,"name":"HBO"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/490/1226764.jpg"},"summary":"<p>Touch darkness and darkness touches you back. <b>True Detective</b> centers on troubled cops and the investigations that drive them to the edge.</p>"},{"id":6,"url":"https://www.tvmaze.com/shows/6/the-100","name":"The 100","type":"Scripted","language":"English","genres":["Action","Adventure","Science-Fiction"],"status":"Ended","runtime":60,"averageRuntime":60,"premiered":"2014-03-19","ended":"2020-09-30","rating":{"average":7.7},"weight":99,"network":{"id":5,"name":"The CW"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/477/1194981.jpg"},"summary":"<p>Ninety-seven years ago, nuclear Armageddon decimated planet Earth. The only survivors were 400 inhabitants of 12 international space stations.</p>"},{"id":7,"url":"https://www.tvmaze.com/shows/7/homeland","name":"Homeland","type":"Scripted","language":"English","genres":["Drama","Thriller","Espionage"],"status":"Ended","runtime":60,"averageRuntime":60,"premiered":"2011-10-02","ended":"2020-04-26","rating":{"average":8.2},"weight":98,"network":{"id":9,"name":"Paramount+ with Showtime"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/498/1245275.jpg"},"summary":"<p>Marine Sergeant Nicholas Brody is both a decorated hero and a serious threat. CIA officer Carrie Mathison is tops in her field despite being bipolar.</p>"},{"id":8,"url":"https://www.tvmaze.com/shows/8/glee","name":"Glee","type":"Scripted","language":"English","genres":["Drama","Music","Romance"],"status":"Ended","runtime":60,"averageRuntime":60,"premiered":"2009-05-19","ended":"2015-03-20","rating":{"average":6.6},"weight":97,"network":{"id":4,"name":"FOX"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/0/73.jpg"},"summary":"<p><b>Glee</b> is a musical comedy about ambitious and talented young adults in search of strength, acceptance and their voice.</p>"},{"id":9,"url":"https://www.tvmaze.com/shows/9/revenge","name":"Revenge","type":"Scripted","language":"English","genres":["Drama","Thriller","Mystery"],"status":"Ended","runtime":60,"averageRuntime":60,"premiered":"2011-09-21","ended":"2015-05-10","rating":{"average":7.7},"weight":98,"network":{"id":3,"name":"ABC"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/82/206879.jpg"},"summary":"<p>This is not a story about forgiveness; <b>Revenge</b> is a show about retribution. Meet Emily Thorne, the newest resident of The Hamptons.</p>"},{"id":10,"url":"https://www.tvmaze.com/shows/10/grimm","name":"Grimm","type":"Scripted","language":"English","genres":["Drama","Crime","Supernatural"],"status":"Ended","runtime":60,"averageRuntime":60,"premiered":"2011-10-28","ended":"2017-03-31","rating":{"average":8.4},"weight":98,"network":{"id":1,"name":"NBC"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/69/174906.jpg"},"summary":"<p><b>Grimm</b> is a drama series inspired by the classic Grimm Brothers' Fairy Tales. Detective Nick Burkhardt discovers he's descended from an elite line of criminal profilers.</p>"},{"id":11,"url":"https://www.tvmaze.com/shows/11/gotham","name":"Gotham","type":"Scripted","language":"English","genres":["Drama","Action","Crime"],"status":"Ended","runtime":60,"averageRuntime":60,"premiered":"2014-09-22","ended":"2019-04-25","rating":{"average":7.7},"weight":98,"network":{"id":4,"name":"FOX"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/189/474715.jpg"},"summary":"<p><b>Gotham</b> is an origin story of the great DC Comics Super-Villains and vigilantes, revealing an entirely new chapter that has never been told.</p>"},{"id":12,"url":"https://www.tvmaze.com/shows/12/lost-girl","name":"Lost Girl","type":"Scripted","language":"English","genres":["Drama","Fantasy","Horror"],"status":"Ended","runtime":60,"averageRuntime":60,"premiered":"2010-09-12","ended":"2015-10-25","rating":{"average":7.9},"weight":96,"network":{"id":6,"name":"Showcase"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/0/137.jpg"},"summary":"<p><b>Lost Girl</b> follows supernatural seductress Bo, a Succubus who feeds on the sexual energy of humans.</p>"},{"id":13,"url":"https://www.tvmaze.com/shows/13/the-flash","name":"The Flash","type":"Scripted","language":"English","genres":["Drama","Action","Science-Fiction"],"status":"Ended","runtime":60,"averageRuntime":60,"premiered":"2014-10-07","ended":"2023-05-24","rating":{"average":7.5},"weight":99,"network":{"id":5,"name":"The CW"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/448/1121792.jpg"},"summary":"<p>After a particle accelerator causes a freak storm, CSI Investigator Barry Allen awakens with the power of super speed.</p>"},{"id":14,"url":"https://www.tvmaze.com/shows/14/continuum","name":"Continuum","type":"Scripted","language":"English","genres":["Drama","Crime","Science-Fiction"],"status":"Ended","runtime":60,"averageRuntime":60,"premiered":"2012-05-27","ended":"2015-10-09","rating":{"average":8},"weight":97,"network":{"id":6,"name":"Showcase"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/0/184.jpg"},"summary":"<p><b>Continuum</b> centers on the conflict between a group of rebels from 2077 who time-travel to 2012, and a police officer who accompanies them.</p>"},{"id":15,"url":"https://www.tvmaze.com/shows/15/constantine","name":"Constantine","type":"Scripted","language":"English","genres":["Drama","Action","Horror"],"status":"Ended","runtime":60,"averageRuntime":60,"premiered":"2014-10-24","ended":"2015-02-13","rating":{"average":7.5},"weight":92,"network":{"id":1,"name":"NBC"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/0/154.jpg"},"summary":"<p>Seasoned demon hunter John Constantine is armed with a ferocious knowledge of the dark arts and a wickedly naughty wit.</p>"},{"id":16,"url":"https://www.tvmaze.com/shows/16/penny-dreadful","name":"Penny Dreadful","type":"Scripted","language":"English","genres":["Horror","Thriller","Supernatural"],"status":"Ended","runtime":60,"averageRuntime":60,"premiered":"2014-05-11","ended":"2016-06-19","rating":{"average":8.2},"weight":97,"network":{"id":9,"name":"Paramount+ with Showtime"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/48/122260.jpg"},"summary":"<p>Some of literature's most terrifying characters are lurking in the darkest corners of Victorian London in this psychological thriller.</p>"},{"id":18,"url":"https://www.tvmaze.com/shows/18/the-amazing-race","name":"The Amazing Race","type":"Reality","language":"English","genres":["Action","Adventure","Family"],"status":"Running","runtime":90,"averageRuntime":65,"premiered":"2001-09-05","ended":null,"rating":{"average":6.8},"weight":96,"network":{"id":2,"name":"CBS"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/587/1468637.jpg"},"summary":"<p>Teams race around the world in a competition of street smarts and savvy know-how.</p>"},{"id":19,"url":"https://www.tvmaze.com/shows/19/supernatural","name":"Supernatural","type":"Scripted","language":"English","genres":["Drama","Action","Supernatural"],"status":"Ended","runtime":60,"averageRuntime":60,"premiered":"2005-09-13","ended":"2020-11-19","rating":{"average":8.4},"weight":99,"network":{"id":5,"name":"The CW"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/445/1114097.jpg"},"summary":"<p>The Winchester brothers crisscross the lonely and mysterious back roads of the country, hunting down every evil supernatural force they encounter.</p>"},{"id":20,"url":"https://www.tvmaze.com/shows/20/the-strain","name":"The Strain","type":"Scripted","language":"English","genres":["Drama","Horror","Thriller"],"status":"Ended","runtime":60,"averageRuntime":61,"premiered":"2014-07-13","ended":"2017-09-17","rating":{"average":7.5},"weight":96,"network":{"id":13,"name":"FX"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/444/1111710.jpg"},"summary":"<p><b>The Strain</b> tells the story of Dr. Ephraim Goodweather and his team investigating a mysterious viral outbreak with hallmarks of vampirism.</p>"},{"id":21,"url":"https://www.tvmaze.com/shows/21/the-last-ship","name":"The Last Ship","type":"Scripted","language":"English","genres":["Drama","Action","Thriller"],"status":"Ended","runtime":60,"averageRuntime":60,"premiered":"2014-06-22","ended":"2018-11-11","rating":{"average":7.6},"weight":98,"network":{"id":14,"name":"TNT"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/164/412464.jpg"},"summary":"<p>The crew of a lone and unaffected Navy destroyer must find a way to pull humanity from the brink of extinction after a global pandemic.</p>"},{"id":22,"url":"https://www.tvmaze.com/shows/22/true-blood","name":"True Blood","type":"Scripted","language":"English","genres":["Drama","Romance","Supernatural"],"status":"Ended","runtime":60,"averageRuntime":60,"premiered":"2008-09-07","ended":"2014-08-24","rating":{"average":7.9},"weight":94,"network":{"id":8,"name":"HBO"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/410/1026956.jpg"},"summary":"<p><b>True Blood</b> focuses on Sookie Stackhouse and her various encounters with vampires and other supernatural beings in Bon Temps, Louisiana.</p>"},{"id":25,"url":"https://www.tvmaze.com/shows/25/hellsing","name":"Hellsing","type":"Animation","language":"Japanese","genres":["Anime","Horror","Supernatural"],"status":"Ended","runtime":30,"averageRuntime":30,"premiered":"2001-10-10","ended":"2002-01-16","rating":{"average":7.3},"weight":86,"network":{"id":131,"name":"Fuji TV"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/178/446544.jpg"},"summary":"<p><b>Hellsing</b> is a 13-part anime focusing on the Hellsing institute and the anti-hero vampire Alucard.</p>"},{"id":27,"url":"https://www.tvmaze.com/shows/27/berserk","name":"Berserk","type":"Animation","language":"Japanese","genres":["Anime","Fantasy","Horror"],"status":"Ended","runtime":25,"averageRuntime":25,"premiered":"1997-10-07","ended":"1998-03-31","rating":{"average":8},"weight":94,"network":{"id":137,"name":"NTV"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/396/991619.jpg"},"summary":"<p><b>Berserk</b> is set in a dark fantasy environment following lone swordsman Guts and his encounters with the Band of the Hawk mercenaries.</p>"},{"id":29,"url":"https://www.tvmaze.com/shows/29/vikings","name":"Vikings","type":"Scripted","language":"English","genres":["Drama","Action","History"],"status":"Ended","runtime":60,"averageRuntime":60,"premiered":"2013-03-03","ended":"2021-03-05","rating":{"average":8.6},"weight":98,"network":{"id":118,"name":"History"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/286/715906.jpg"},"summary":"<p><b>Vikings</b> transports us to the brutal and mysterious world of Ragnar Lothbrok, a Viking warrior who yearns to explore and raid distant shores.</p>"},{"id":30,"url":"https://www.tvmaze.com/shows/30/american-horror-story","name":"American Horror Story","type":"Scripted","language":"English","genres":["Drama","Horror","Thriller"],"status":"Running","runtime":60,"averageRuntime":61,"premiered":"2011-10-05","ended":null,"rating":{"average":7.5},"weight":99,"network":{"id":13,"name":"FX"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/473/1183640.jpg"},"summary":"<p><b>American Horror Story</b> is a horror television anthology series, each season a self-contained miniseries with its own beginning, middle, and end.</p>"},{"id":31,"url":"https://www.tvmaze.com/shows/31/marvels-agents-of-shield","name":"Marvel's Agents of S.H.I.E.L.D.","type":"Scripted","language":"English","genres":["Action","Adventure","Science-Fiction"],"status":"Ended","runtime":60,"averageRuntime":60,"premiered":"2013-09-24","ended":"2020-08-12","rating":{"average":8},"weight":98,"network":{"id":3,"name":"ABC"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/486/1215694.jpg"},"summary":"<p>Phil Coulson heads an elite team investigating strange occurrences around the globe for S.H.I.E.L.D.</p>"},{"id":32,"url":"https://www.tvmaze.com/shows/32/fargo","name":"Fargo","type":"Scripted","language":"English","genres":["Drama","Comedy","Crime"],"status":"To Be Determined","runtime":60,"averageRuntime":67,"premiered":"2014-04-15","ended":null,"rating":{"average":8.7},"weight":100,"network":{"id":13,"name":"FX"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/487/1219631.jpg"},"summary":"<p><b>Fargo</b> is a seasonal anthology crime drama inspired by the Coen brothers film, filled with dark humor, murder and \"Minnesota nice\".</p>"},{"id":33,"url":"https://www.tvmaze.com/shows/33/hemlock-grove","name":"Hemlock Grove","type":"Scripted","language":"English","genres":["Drama","Horror","Thriller"],"status":"Ended","runtime":null,"averageRuntime":52,"premiered":"2013-04-19","ended":"2015-10-23","rating":{"average":6.9},"weight":90,"network":null,"webChannel":{"name":"Netflix"},"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/0/305.jpg"},"summary":"<p>Secrets are just a part of daily life in the small Pennsylvania town of <b>Hemlock Grove</b>, where the darkest evils hide in plain sight.</p>"},{"id":35,"url":"https://www.tvmaze.com/shows/35/the-killing","name":"The Killing","type":"Scripted","language":"English","genres":["Drama","Crime","Thriller"],"status":"Ended","runtime":60,"averageRuntime":60,"premiered":"2011-04-03","ended":"2014-08-01","rating":{"average":8.2},"weight":98,"network":{"id":20,"name":"AMC"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/216/540157.jpg"},"summary":"<p><b>The Killing</b> follows Seattle homicide detectives Stephen Holder and Sarah Linden as they investigate dark murders.</p>"},{"id":38,"url":"https://www.tvmaze.com/shows/38/z-nation","name":"Z Nation","type":"Scripted","language":"English","genres":["Action","Horror","Science-Fiction"],"status":"Ended","runtime":60,"averageRuntime":61,"premiered":"2014-09-12","ended":"2018-12-28","rating":{"average":7.2},"weight":98,"network":{"id":16,"name":"Syfy"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/170/426759.jpg"},"summary":"<p><b>Z Nation</b> — a team must transport the only known survivor of the zombie plague across 3000 miles of post-apocalyptic America.</p>"},{"id":40,"url":"https://www.tvmaze.com/shows/40/death-note","name":"Death Note","type":"Animation","language":"Japanese","genres":["Anime","Fantasy","Thriller"],"status":"Ended","runtime":30,"averageRuntime":30,"premiered":"2006-10-03","ended":"2007-06-26","rating":{"average":8.8},"weight":95,"network":{"id":137,"name":"NTV"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/499/1249019.jpg"},"summary":"<p><b>Death Note</b> follows Light Yagami who finds a death god's notebook — any person's name written in it will die.</p>"},{"id":42,"url":"https://www.tvmaze.com/shows/42/sleepy-hollow","name":"Sleepy Hollow","type":"Scripted","language":"English","genres":["Drama","Mystery","Supernatural"],"status":"Ended","runtime":60,"averageRuntime":60,"premiered":"2013-09-16","ended":"2017-03-31","rating":{"average":7.5},"weight":97,"network":{"id":4,"name":"FOX"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/81/204166.jpg"},"summary":"<p><b>Sleepy Hollow</b> — a resurrected Ichabod Crane pairs up with a present-day police lieutenant to save the enigmatic town from unprecedented evil.</p>"},{"id":43,"url":"https://www.tvmaze.com/shows/43/outlander","name":"Outlander","type":"Scripted","language":"English","genres":["Adventure","Romance","Science-Fiction"],"status":"Running","runtime":60,"averageRuntime":61,"premiered":"2014-08-09","ended":null,"rating":{"average":7.9},"weight":100,"network":{"id":17,"name":"STARZ"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/616/1541142.jpg"},"summary":"<p><b>Outlander</b> follows Claire Randall, a married combat nurse from 1945 who is mysteriously swept back in time to 1743 Scotland.</p>"},{"id":46,"url":"https://www.tvmaze.com/shows/46/forever","name":"Forever","type":"Scripted","language":"English","genres":["Drama","Crime","Supernatural"],"status":"Ended","runtime":60,"averageRuntime":60,"premiered":"2014-09-22","ended":"2015-05-05","rating":{"average":8.1},"weight":98,"network":{"id":3,"name":"ABC"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/0/383.jpg"},"summary":"<p>Doctor Henry Morgan is New York City's star medical examiner with a secret — he is immortal and has lived for 200 years.</p>"},{"id":49,"url":"https://www.tvmaze.com/shows/49/brooklyn-nine-nine","name":"Brooklyn Nine-Nine","type":"Scripted","language":"English","genres":["Comedy","Action","Crime"],"status":"Ended","runtime":30,"averageRuntime":30,"premiered":"2013-09-17","ended":"2021-09-16","rating":{"average":8.1},"weight":98,"network":{"id":1,"name":"NBC"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/402/1007484.jpg"},"summary":"<p><b>Brooklyn Nine-Nine</b> is an ensemble comedy about a talented-but-carefree detective, a by-the-book police captain and their precinct colleagues.</p>"},{"id":51,"url":"https://www.tvmaze.com/shows/51/the-knick","name":"The Knick","type":"Scripted","language":"English","genres":["Drama","Medical"],"status":"Ended","runtime":60,"averageRuntime":60,"premiered":"2014-08-08","ended":"2015-12-18","rating":{"average":8.3},"weight":95,"network":{"id":19,"name":"Cinemax"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/0/417.jpg"},"summary":"<p>New York City, 1900: The Knickerbocker Hospital is home to groundbreaking surgeons pushing the boundaries of medicine with astonishing mortality rates.</p>"},{"id":56,"url":"https://www.tvmaze.com/shows/56/chicago-pd","name":"Chicago P.D.","type":"Scripted","language":"English","genres":["Drama","Crime"],"status":"Running","runtime":60,"averageRuntime":60,"premiered":"2014-01-08","ended":null,"rating":{"average":8},"weight":100,"network":{"id":1,"name":"NBC"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/590/1475641.jpg"},"summary":"<p>District 21 of the Chicago Police Department — uniformed cops and the Intelligence Unit taking on the city's major offenses.</p>"},{"id":59,"url":"https://www.tvmaze.com/shows/59/chicago-fire","name":"Chicago Fire","type":"Scripted","language":"English","genres":["Drama","Action"],"status":"Running","runtime":60,"averageRuntime":60,"premiered":"2012-10-10","ended":null,"rating":{"average":8},"weight":100,"network":{"id":1,"name":"NBC"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/590/1475640.jpg"},"summary":"<p>The courageous men and women of Chicago Firehouse 51 forge headfirst into danger when everyone else is running the other way.</p>"},{"id":60,"url":"https://www.tvmaze.com/shows/60/ncis","name":"NCIS","type":"Scripted","language":"English","genres":["Drama","Action","Crime"],"status":"Running","runtime":60,"averageRuntime":60,"premiered":"2003-09-23","ended":null,"rating":{"average":8},"weight":100,"network":{"id":2,"name":"CBS"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/591/1479851.jpg"},"summary":"<p><b>NCIS</b> focuses on the sometimes complex and always amusing dynamics of a team working in high-stress situations led by former Marine Leroy Gibbs.</p>"},{"id":61,"url":"https://www.tvmaze.com/shows/61/orphan-black","name":"Orphan Black","type":"Scripted","language":"English","genres":["Drama","Science-Fiction","Thriller"],"status":"Ended","runtime":60,"averageRuntime":60,"premiered":"2013-03-30","ended":"2017-08-12","rating":{"average":8.6},"weight":98,"network":{"id":7,"name":"CTV Sci-Fi Channel"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/484/1210257.jpg"},"summary":"<p><b>Orphan Black</b> — Sarah discovers she and a dead woman are clones... but are they the only ones? A deadly conspiracy unfolds.</p>"},{"id":62,"url":"https://www.tvmaze.com/shows/62/the-originals","name":"The Originals","type":"Scripted","language":"English","genres":["Drama","Romance","Supernatural"],"status":"Ended","runtime":60,"averageRuntime":60,"premiered":"2013-10-03","ended":"2018-08-01","rating":{"average":8.2},"weight":99,"network":{"id":5,"name":"The CW"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/271/678632.jpg"},"summary":"<p><b>The Originals</b> is set in New Orleans where the original vampires navigate conflict between vampires, werewolves and witches.</p>"},{"id":64,"url":"https://www.tvmaze.com/shows/64/utopia","name":"Utopia","type":"Scripted","language":"English","genres":["Drama","Science-Fiction","Thriller"],"status":"Ended","runtime":60,"averageRuntime":60,"premiered":"2013-01-15","ended":"2014-08-12","rating":{"average":8.4},"weight":97,"network":{"id":45,"name":"Channel 4"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/275/688620.jpg"},"summary":"<p><b>Utopia</b> — a small group finds a rare manuscript, leading them to be targeted by a large and mysterious organisation.</p>"},{"id":65,"url":"https://www.tvmaze.com/shows/65/bones","name":"Bones","type":"Scripted","language":"English","genres":["Drama","Crime","Medical"],"status":"Ended","runtime":44,"averageRuntime":60,"premiered":"2005-09-13","ended":"2017-03-28","rating":{"average":8.1},"weight":99,"network":{"id":4,"name":"FOX"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/80/201197.jpg"},"summary":"<p>F.B.I. Agent Seeley Booth teams up with forensic anthropologist Dr. Temperance \"Bones\" Brennan to solve bizarre crimes.</p>"},{"id":66,"url":"https://www.tvmaze.com/shows/66/the-big-bang-theory","name":"The Big Bang Theory","type":"Scripted","language":"English","genres":["Comedy"],"status":"Ended","runtime":30,"averageRuntime":30,"premiered":"2007-09-24","ended":"2019-05-16","rating":{"average":8},"weight":99,"network":{"id":2,"name":"CBS"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/173/433868.jpg"},"summary":"<p><b>The Big Bang Theory</b> follows brilliant physicists Leonard and Sheldon and their social adventures when neighbor Penny moves in next door.</p>"},{"id":67,"url":"https://www.tvmaze.com/shows/67/greys-anatomy","name":"Grey's Anatomy","type":"Scripted","language":"English","genres":["Drama","Romance","Medical"],"status":"Running","runtime":60,"averageRuntime":60,"premiered":"2005-03-27","ended":null,"rating":{"average":7.6},"weight":100,"network":{"id":3,"name":"ABC"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/600/1501061.jpg"},"summary":"<p>The doctors of Grey Sloan Memorial Hospital deal with life-or-death consequences daily in this iconic medical drama.</p>"},{"id":68,"url":"https://www.tvmaze.com/shows/68/castle","name":"Castle","type":"Scripted","language":"English","genres":["Drama","Crime","Mystery"],"status":"Ended","runtime":40,"averageRuntime":60,"premiered":"2009-03-09","ended":"2016-05-16","rating":{"average":8.2},"weight":98,"network":{"id":3,"name":"ABC"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/13/34761.jpg"},"summary":"<p><b>Castle</b> follows Rick Castle, one of the world's most successful crime authors, who assists Detective Kate Beckett in solving crimes.</p>"},{"id":69,"url":"https://www.tvmaze.com/shows/69/the-blacklist","name":"The Blacklist","type":"Scripted","language":"English","genres":["Drama","Crime","Thriller"],"status":"Ended","runtime":60,"averageRuntime":60,"premiered":"2013-09-23","ended":"2023-07-13","rating":{"average":8.1},"weight":99,"network":{"id":1,"name":"NBC"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/445/1113538.jpg"},"summary":"<p><b>The Blacklist</b> — a former government agent turned high-profile criminal turns himself in to the FBI, offering to help catch other criminals.</p>"},{"id":73,"url":"https://www.tvmaze.com/shows/73/the-walking-dead","name":"The Walking Dead","type":"Scripted","language":"English","genres":["Drama","Action","Horror"],"status":"Ended","runtime":null,"averageRuntime":62,"premiered":"2010-10-31","ended":"2022-11-20","rating":{"average":8},"weight":99,"network":null,"webChannel":{"name":"AMC+"},"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/424/1061900.jpg"},"summary":"<p><b>The Walking Dead</b> follows survivors led by Rick Grimes in a world overrun by the dead, where interpersonal conflicts may be the greater danger.</p>"},{"id":74,"url":"https://www.tvmaze.com/shows/74/hell-on-wheels","name":"Hell on Wheels","type":"Scripted","language":"English","genres":["Drama","Action","Western"],"status":"Ended","runtime":60,"averageRuntime":60,"premiered":"2011-11-06","ended":"2016-07-23","rating":{"average":8.2},"weight":97,"network":{"id":20,"name":"AMC"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/0/526.jpg"},"summary":"<p><b>Hell on Wheels</b> depicts the construction of the First Transcontinental Railroad and the life in the mobile encampment that followed the railhead west.</p>"},{"id":76,"url":"https://www.tvmaze.com/shows/76/sons-of-anarchy","name":"Sons of Anarchy","type":"Scripted","language":"English","genres":["Drama","Action","Crime"],"status":"Ended","runtime":60,"averageRuntime":60,"premiered":"2008-09-03","ended":"2014-12-09","rating":{"average":8.3},"weight":98,"network":{"id":13,"name":"FX"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/495/1239905.jpg"},"summary":"<p><b>Sons of Anarchy</b> — the lives of a close-knit outlaw motorcycle club operating in Charming, California, centered on Jackson \"Jax\" Teller.</p>"},{"id":80,"url":"https://www.tvmaze.com/shows/80/modern-family","name":"Modern Family","type":"Scripted","language":"English","genres":["Comedy","Family"],"status":"Ended","runtime":30,"averageRuntime":30,"premiered":"2009-09-23","ended":"2020-04-08","rating":{"average":7.7},"weight":98,"network":{"id":3,"name":"ABC"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/359/898320.jpg"},"summary":"<p><b>Modern Family</b> revolves around three different types of families living in the Los Angeles area, all interrelated through Jay Pritchett.</p>"},{"id":81,"url":"https://www.tvmaze.com/shows/81/criminal-minds","name":"Criminal Minds","type":"Scripted","language":"English","genres":["Drama","Crime","Thriller"],"status":"Running","runtime":null,"averageRuntime":60,"premiered":"2005-09-22","ended":null,"rating":{"average":8.1},"weight":100,"network":null,"webChannel":{"name":"Paramount+"},"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/0/571.jpg"},"summary":"<p><b>Criminal Minds</b> — an elite team of FBI profilers analyzes the country's most twisted criminal minds, anticipating their next moves.</p>"},{"id":82,"url":"https://www.tvmaze.com/shows/82/game-of-thrones","name":"Game of Thrones","type":"Scripted","language":"English","genres":["Drama","Adventure","Fantasy"],"status":"Ended","runtime":60,"averageRuntime":61,"premiered":"2011-04-17","ended":"2019-05-19","rating":{"average":8.9},"weight":99,"network":{"id":8,"name":"HBO"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/498/1245274.jpg"},"summary":"<p>Based on <i>A Song of Ice and Fire</i> by George R.R. Martin — the powerful families of the Seven Kingdoms locked in a battle for the Iron Throne.</p>"},{"id":83,"url":"https://www.tvmaze.com/shows/83/the-simpsons","name":"The Simpsons","type":"Animation","language":"English","genres":["Comedy","Family"],"status":"Running","runtime":30,"averageRuntime":30,"premiered":"1989-12-17","ended":null,"rating":{"average":8.1},"weight":99,"network":{"id":4,"name":"FOX"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/588/1471731.jpg"},"summary":"<p><b>The Simpsons</b> is the longest running scripted show in US TV history, capturing the adventures of Homer, Marge, Bart and Lisa in fictional Springfield.</p>"},{"id":84,"url":"https://www.tvmaze.com/shows/84/family-guy","name":"Family Guy","type":"Animation","language":"English","genres":["Comedy","Family"],"status":"Running","runtime":30,"averageRuntime":30,"premiered":"1999-01-31","ended":null,"rating":{"average":7.5},"weight":100,"network":{"id":4,"name":"FOX"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/609/1523259.jpg"},"summary":"<p><b>Family Guy</b> follows Peter Griffin, the endearingly ignorant dad, and his hilariously offbeat family in Quahog, Rhode Island.</p>"},{"id":100,"url":"https://www.tvmaze.com/shows/100/blue-bloods","name":"Blue Bloods","type":"Scripted","language":"English","genres":["Drama","Crime"],"status":"Ended","runtime":60,"averageRuntime":60,"premiered":"2010-09-24","ended":"2024-12-13","rating":{"average":8.1},"weight":99,"network":{"id":2,"name":"CBS"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/593/1482537.jpg"},"summary":"<p><b>Blue Bloods</b> is a drama about a multi-generational family of cops dedicated to New York City law enforcement.</p>"},{"id":102,"url":"https://www.tvmaze.com/shows/102/boardwalk-empire","name":"Boardwalk Empire","type":"Scripted","language":"English","genres":["Drama","Crime"],"status":"Ended","runtime":60,"averageRuntime":60,"premiered":"2010-09-19","ended":"2014-10-26","rating":{"average":8.4},"weight":94,"network":{"id":8,"name":"HBO"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/405/1012589.jpg"},"summary":"<p>Nucky Thompson looks to legitimize himself through alliances while rivals Lucky Luciano and Meyer Lansky seek to consolidate their power in <b>Boardwalk Empire</b>.</p>"},{"id":103,"url":"https://www.tvmaze.com/shows/103/law-order-special-victims-unit","name":"Law & Order: SVU","type":"Scripted","language":"English","genres":["Drama","Crime","Legal"],"status":"Running","runtime":60,"averageRuntime":60,"premiered":"1999-09-20","ended":null,"rating":{"average":7.9},"weight":100,"network":{"id":1,"name":"NBC"},"webChannel":null,"image":{"medium":"https://static.tvmaze.com/uploads/images/medium_portrait/589/1472924.jpg"},"summary":"<p>The dedicated detectives of the Special Victims Unit investigate sexually-based offenses in New York City.</p>"}];
+
+// ───────────────────── STATE ─────────────────────
+let activeType = '';
+let currentShows = [...RAW];
+
+// ───────────────────── INIT ─────────────────────
+function init() {
+  populateFilters();
+  updateHeroStats();
+  renderGrid(RAW);
+  attachEvents();
+}
+
+function populateFilters() {
+  const allGenres = new Set();
+  RAW.forEach(s => s.genres.forEach(g => allGenres.add(g)));
+  const genreSelect = document.getElementById('genre-filter');
+  [...allGenres].sort().forEach(g => {
+    const opt = document.createElement('option');
+    opt.value = g; opt.textContent = g;
+    genreSelect.appendChild(opt);
+  });
+}
+
+function updateHeroStats() {
+  document.getElementById('total-count').textContent = RAW.length;
+  document.getElementById('running-count').textContent = RAW.filter(s => s.status === 'Running').length;
+  const genres = new Set(RAW.flatMap(s => s.genres));
+  document.getElementById('genre-count').textContent = genres.size;
+  const top = Math.max(...RAW.map(s => s.rating?.average || 0));
+  document.getElementById('top-rating').textContent = top.toFixed(1) + '★';
+}
+
+// ───────────────────── FILTER & SORT ─────────────────────
+function applyFilters() {
+  const q = document.getElementById('search').value.toLowerCase().trim();
+  const genre = document.getElementById('genre-filter').value;
+  const status = document.getElementById('status-filter').value;
+  const sort = document.getElementById('sort-select').value;
+
+  let shows = RAW.filter(s => {
+    const matchQ = !q || s.name.toLowerCase().includes(q) ||
+      s.genres.some(g => g.toLowerCase().includes(q)) ||
+      (s.network?.name || s.webChannel?.name || '').toLowerCase().includes(q) ||
+      (s.summary || '').toLowerCase().includes(q.replace(/<[^>]+>/g,''));
+    const matchGenre = !genre || s.genres.includes(genre);
+    const matchStatus = !status || s.status === status;
+    const matchType = !activeType || s.type === activeType;
+    return matchQ && matchGenre && matchStatus && matchType;
+  });
+
+  shows.sort((a, b) => {
+    if (sort === 'rating') return (b.rating?.average || 0) - (a.rating?.average || 0);
+    if (sort === 'name') return a.name.localeCompare(b.name);
+    if (sort === 'premiered') return (b.premiered || '').localeCompare(a.premiered || '');
+    if (sort === 'weight') return (b.weight || 0) - (a.weight || 0);
+    return 0;
+  });
+
+  currentShows = shows;
+  renderGrid(shows);
+}
+
+// ───────────────────── RENDER ─────────────────────
+function stripHtml(html) {
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html || '';
+  return tmp.textContent || '';
+}
+
+function statusClass(status) {
+  if (status === 'Running') return 'status-Running';
+  if (status === 'Ended') return 'status-Ended';
+  return 'status-TBD';
+}
+
+function renderGrid(shows) {
+  const grid = document.getElementById('grid');
+  const info = document.getElementById('results-text');
+  
+  info.innerHTML = `Showing <span>${shows.length}</span> of ${RAW.length} shows`;
+
+  if (shows.length === 0) {
+    grid.innerHTML = `<div class="empty-state">
+      <div class="icon">🎬</div>
+      <h3>No shows found</h3>
+      <p>Try adjusting your search or filters</p>
+    </div>`;
+    return;
+  }
+
+  grid.innerHTML = shows.map((s, i) => {
+    const net = s.network?.name || s.webChannel?.name || 'Unknown';
+    const rating = s.rating?.average;
+    const ratingHtml = rating
+      ? `<div class="rating"><span class="star">★</span>${rating}</div>`
+      : `<div class="rating none">No rating</div>`;
+    const genreTags = s.genres.slice(0,2).map(g => `<span class="genre-tag">${g}</span>`).join('');
+    const summary = stripHtml(s.summary);
+    const premiered = s.premiered ? s.premiered.slice(0,4) : '—';
+    const runtime = s.averageRuntime ? `${s.averageRuntime}m` : (s.runtime ? `${s.runtime}m` : '—');
+    const statusCls = statusClass(s.status);
+    
+    return `<div class="show-card" onclick="openModal(${s.id})" style="animation-delay:${Math.min(i,20)*0.03}s" id="card-${s.id}">
+      <div class="card-poster">
+        ${s.image?.medium
+          ? `<img src="${s.image.medium}" alt="${s.name} poster" loading="lazy" onerror="this.parentElement.innerHTML='<div class=\\"poster-placeholder\\"><div class=\\"icon\\">🎬</div><span>${s.name.slice(0,12)}</span></div>'">`
+          : `<div class="poster-placeholder"><div class="icon">🎬</div><span>${s.name.slice(0,12)}</span></div>`}
+        <span class="status-badge ${statusCls}">${s.status === 'To Be Determined' ? 'TBD' : s.status}</span>
+        <div class="card-overlay">
+          <div class="card-genres">${genreTags}</div>
+          <div class="card-title-overlay">${s.name}</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="card-meta">
+          ${ratingHtml}
+          <span class="network-pill">${net}</span>
+        </div>
+        <div class="card-info-row">
+          <span class="info-item">📅 ${premiered}</span>
+          <span class="info-dot"></span>
+          <span class="info-item">⏱ ${runtime}</span>
+          <span class="info-dot"></span>
+          <span class="info-item">${s.type}</span>
+        </div>
+        <div class="card-summary">${summary}</div>
+        <div class="card-footer">
+          <span class="view-btn">Details →</span>
+          <span class="type-label">${s.language}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ───────────────────── MODAL ─────────────────────
+function openModal(id) {
+  const s = RAW.find(x => x.id === id);
+  if (!s) return;
+
+  const net = s.network?.name || s.webChannel?.name || 'Unknown';
+  const rating = s.rating?.average;
+  const premiered = s.premiered || '—';
+  const ended = s.ended || (s.status === 'Running' ? 'Present' : '—');
+  const summary = s.summary ? s.summary.replace(/<b>/g,'<strong>').replace(/<\/b>/g,'</strong>').replace(/<i>/g,'<em>').replace(/<\/i>/g,'</em>').replace(/<p>/g,'').replace(/<\/p>/g,'<br><br>') : 'No summary available.';
+  const statusCls = statusClass(s.status);
+  const runtime = s.averageRuntime || s.runtime;
+
+  document.getElementById('modal-content').innerHTML = `
+    <div class="modal-hero">
+      <div class="modal-poster">
+        ${s.image?.medium
+          ? `<img src="${s.image.medium}" alt="${s.name}" style="width:100%;height:100%;object-fit:cover;">`
+          : `<div class="modal-poster-placeholder">🎬</div>`}
+      </div>
+      <div class="modal-header">
+        <div class="modal-status-row">
+          <span class="status-badge ${statusCls}" style="position:static">${s.status === 'To Be Determined' ? 'TBD' : s.status}</span>
+          <span class="type-label">${s.type} · ${s.language}</span>
+        </div>
+        <div class="modal-title">${s.name}</div>
+        <div class="modal-genres">${s.genres.map(g=>`<span class="modal-genre">${g}</span>`).join('')}</div>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div class="modal-stats">
+        <div class="modal-stat">
+          <div class="modal-stat-label">Rating</div>
+          <div class="modal-stat-value gold">${rating ? `★ ${rating} / 10` : 'N/A'}</div>
+        </div>
+        <div class="modal-stat">
+          <div class="modal-stat-label">Network</div>
+          <div class="modal-stat-value">${net}</div>
+        </div>
+        <div class="modal-stat">
+          <div class="modal-stat-label">Premiered</div>
+          <div class="modal-stat-value">${premiered}</div>
+        </div>
+        <div class="modal-stat">
+          <div class="modal-stat-label">Ended</div>
+          <div class="modal-stat-value ${s.status === 'Running' ? 'green' : ''}">${ended}</div>
+        </div>
+        ${runtime ? `<div class="modal-stat"><div class="modal-stat-label">Runtime</div><div class="modal-stat-value">${runtime} min</div></div>` : ''}
+        <div class="modal-stat">
+          <div class="modal-stat-label">Popularity</div>
+          <div class="modal-stat-value">${s.weight}/100</div>
+        </div>
+      </div>
+      <div class="modal-summary">
+        <h3>Synopsis</h3>
+        <p>${summary}</p>
+      </div>
+      <a href="${s.url}" target="_blank" rel="noopener" class="modal-link">
+        View on TVMaze →
+      </a>
+    </div>
+  `;
+
+  document.getElementById('modal-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// ───────────────────── EVENTS ─────────────────────
+function attachEvents() {
+  document.getElementById('search').addEventListener('input', debounce(applyFilters, 250));
+  document.getElementById('genre-filter').addEventListener('change', applyFilters);
+  document.getElementById('status-filter').addEventListener('change', applyFilters);
+  document.getElementById('sort-select').addEventListener('change', applyFilters);
+  document.getElementById('modal-close').addEventListener('click', closeModal);
+  document.getElementById('modal-overlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('modal-overlay')) closeModal();
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+  document.querySelectorAll('.filter-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+      activeType = pill.dataset.type;
+      applyFilters();
+    });
+  });
+}
+
+function debounce(fn, ms) {
+  let t;
+  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+}
+
+init();
+</script>
+</body>
+</html>
